@@ -1,24 +1,39 @@
 defmodule Interactor do
   use Behaviour
-  @callback meta(map) :: Interactor.Results.t | Task.t
+  @callback call(map) :: Interactor.Results.t | Task.t
 
   defmacro __using__(opts) do
-    quote bind_quoted: [opts: opts] do
-      @_repo Keyword.get(opts, :repo)
+    quote do
+      @_repo Keyword.get(unquote(opts), :repo)
       @behaviour Interactor
+      unquote(import_changeset)
+      unquote(alias_multi)
       unquote(define_peform)
       unquote(define_peform_async)
     end
   end
 
+  if Code.ensure_compiled?(Ecto.Changeset) do
+    defp import_changeset, do: quote(do: import Ecto.Changeset)
+  else
+    defp import_changeset, do: nil
+  end
+
+  if Code.ensure_compiled?(Ecto.Multi) do
+    defp alias_multi, do: quote(do: alias Ecto.Multi)
+  else
+    defp alias_multi, do: nil
+  end
+
   defp define_peform do
     quote do
       @spec perform(map) :: Interactor.Results.t
-      def perform(map) do
-        %Interactor.Results{
-          results: Interactor.Handler.handle(call(map), @_repo)
-        }
-      end
+       def perform(map) do
+         %Interactor.Results{
+           results: Interactor.Handler.handle(call(map), @_repo),
+           context: map
+         }
+       end
     end
   end
 
@@ -30,7 +45,7 @@ defmodule Interactor do
   end
 
   defmodule Results do
-    defstruct [:results]
+    defstruct [:results, :context]
     @type t :: %__MODULE__{}
   end
 

@@ -8,8 +8,8 @@ defmodule Interactor do
       @behaviour Interactor
       unquote(import_changeset)
       unquote(alias_multi)
-      unquote(define_peform)
-      unquote(define_peform_async)
+      unquote(define_perform)
+      unquote(define_perform_async)
     end
   end
 
@@ -25,7 +25,7 @@ defmodule Interactor do
     defp alias_multi, do: nil
   end
 
-  defp define_peform do
+  defp define_perform do
     quote do
       @spec perform(map) :: Interactor.Results.t
        def perform(map) do
@@ -37,7 +37,7 @@ defmodule Interactor do
     end
   end
 
-  defp define_peform_async do
+  defp define_perform_async do
     quote do
       @spec perform_async(map) :: Task.t
       def perform_async(map), do: Task.async(__MODULE__, :perform, [map])

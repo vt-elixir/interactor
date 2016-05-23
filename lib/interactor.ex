@@ -1,9 +1,8 @@
 defmodule Interactor do
   use Behaviour
-  @callback call(map) :: any
+  @callback handle_call(map) :: any
   @callback before_call(map) :: map
   @callback after_call(any) :: any
-  @callback after_perform(any) :: any
 
   defmacro __using__(opts) do
     quote do
@@ -11,8 +10,9 @@ defmodule Interactor do
       @behaviour Interactor
       unquote(import_changeset)
       unquote(alias_multi)
-      unquote(define_perform)
-      unquote(define_perform_async)
+      unquote(define_call)
+      unquote(define_call_task)
+      unquote(define_call_async)
     end
   end
 
@@ -28,24 +28,40 @@ defmodule Interactor do
     defp alias_multi, do: nil
   end
 
-  defp define_perform do
+  defp define_call do
     quote do
-      def perform(input) do
-        Interactor.Perform.perform(__MODULE__, input, @_repo)
+      def call(input) do
+        Interactor.call(__MODULE__, input, @_repo)
       end
 
       def before_call(c), do: c
       def after_call(r), do: r
-      def after_perform(r), do: r
 
-      defoverridable [before_call: 1, after_call: 1, after_perform: 1]
+      defoverridable [before_call: 1, after_call: 1]
     end
   end
 
-  defp define_perform_async do
+  defp define_call_task do
     quote do
-      @spec perform_async(map) :: Task.t
-      def perform_async(map), do: Task.async(__MODULE__, :perform, [map])
+      @spec call_task(map) :: Task.t
+      def call_task(map),
+        do: Task.Supervisor.async(Interactor.TaskSupervisor, __MODULE__, :call, [map])
     end
+  end
+
+  defp define_call_async do
+    quote do
+      @spec call_aync(map) :: {:ok, pid}
+      def call_aync(map),
+        do: Task.Supervisor.start_child(Interactor.TaskSupervisor, __MODULE__, :call, [map])
+    end
+  end
+
+  def call(interactor, input, repo) do
+    input
+    |> interactor.before_call
+    |> interactor.handle_call
+    |> Interactor.Handler.handle(repo)
+    |> interactor.after_call
   end
 end

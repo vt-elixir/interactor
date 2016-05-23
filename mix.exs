@@ -11,7 +11,8 @@ defmodule Interactor.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [applications: [:logger],
+     mod: {Interactor.Application, []}]
   end
 
   defp deps do

@@ -41,40 +41,38 @@ defmodule InteractorTest do
     use Interactor, repo: FakeRepo
     def handle_call(%{foo1: foo1, foo2: foo2}) do
       Multi.new
-      |> Multi.insert(:foo1, ChangesetExample.call(%{foo: foo1}))
-      |> Multi.insert(:foo2, ChangesetExample.call(%{foo: foo2}))
+      |> Multi.insert(:foo1, ChangesetExample.handle_call(%{foo: foo1}))
+      |> Multi.insert(:foo2, ChangesetExample.handle_call(%{foo: foo2}))
     end
   end
 
   test "simple - calling call" do
-    assert {:ok, "foobar"} = SimpleExample.call(%{foo: "bar"})
+    assert {:ok, "foobar"} = Interactor.call(SimpleExample, %{foo: "bar"})
   end
 
   test "simple - calling call_task" do
-    task = SimpleExample.call_task(%{foo: "bar"})
+    task = Interactor.call_task(SimpleExample, %{foo: "bar"})
     assert {:ok, "foobar"} = Task.await(task)
   end
 
-  test "changeset - calling perform" do
-    foo = ChangesetExample.call(%{foo: "bar"})
+  test "changeset - calling call" do
+    foo = Interactor.call(ChangesetExample, %{foo: "bar"})
     assert foo.foo == "bar"
   end
 
   test "changeset - calling call_task" do
-    task = ChangesetExample.call_task(%{foo: "bar"})
+    task = Interactor.call_task(ChangesetExample, %{foo: "bar"})
     foo = Task.await(task)
     assert foo.foo == "bar"
   end
 
-  test "multi - calling perform" do
-    results = MultiExample.call(%{foo1: "bar", foo2: "baz"})
-    assert {:ok, %{foo1: foo1, foo2: foo2}} = results
-    assert foo1.foo == "bar"
-    assert foo2.foo == "baz"
+  test "multi - calling call_async" do
+    results = Interactor.call_async(MultiExample, %{foo1: "bar", foo2: "baz"})
+    assert {:ok, _} = results
   end
 
   test "multi - calling call_task" do
-    task = MultiExample.call_task(%{foo1: "bar", foo2: "baz"})
+    task = Interactor.call_task(MultiExample, %{foo1: "bar", foo2: "baz"})
     assert {:ok, %{foo1: foo1, foo2: foo2}} = Task.await(task)
     assert foo1.foo == "bar"
     assert foo2.foo == "baz"

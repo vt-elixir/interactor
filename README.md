@@ -1,5 +1,7 @@
 # Interactor
 
+[![Build Status](https://travis-ci.org/AgilionApps/interactor.svg?branch=master)](https://travis-ci.org/AgilionApps/interactor)
+[![Hex Version](https://img.shields.io/hexpm/v/interactor.svg)](https://hex.pm/packages/interactor)
 
 ## What this is
 

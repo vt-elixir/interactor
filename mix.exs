@@ -38,8 +38,8 @@ defmodule Interactor.Mixfile do
 
   defp description do
     """
-    This is a library implementing a simple pattern that encourages modularity and
-    the Single Responsibility Principle around _doing_ things primarially with ecto.
+    Interactor provides an opinionated interface for performing complex user
+    interactions.
     """
   end
 end

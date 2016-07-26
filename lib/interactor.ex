@@ -99,22 +99,8 @@ defmodule Interactor do
       @behaviour Interactor
       @doc false
       def __repo, do: unquote(opts[:repo])
-      unquote(import_changeset)
-      unquote(alias_multi)
       unquote(define_callback_defaults)
     end
-  end
-
-  if Code.ensure_compiled?(Ecto.Changeset) do
-    defp import_changeset, do: quote(do: import Ecto.Changeset)
-  else
-    defp import_changeset, do: nil
-  end
-
-  if Code.ensure_compiled?(Ecto.Multi) do
-    defp alias_multi, do: quote(do: alias Ecto.Multi)
-  else
-    defp alias_multi, do: nil
   end
 
   defp define_callback_defaults do

@@ -34,11 +34,13 @@ defmodule InteractorTest do
 
   defmodule ChangesetExample do
     use Interactor, repo: FakeRepo
+    import Ecto.Changeset
     def handle_call(params), do: cast(%Foo{}, params, [:foo])
   end
 
   defmodule MultiExample do
     use Interactor, repo: FakeRepo
+    alias Ecto.Multi
     def handle_call(%{foo1: foo1, foo2: foo2}) do
       Multi.new
       |> Multi.insert(:foo1, ChangesetExample.handle_call(%{foo: foo1}))

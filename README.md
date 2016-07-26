@@ -1,5 +1,9 @@
 # Interactor
 
+[![Build Status](https://travis-ci.org/AgilionApps/interactor.svg?branch=master)](https://travis-ci.org/AgilionApps/interactor)
+[![Hex Version](https://img.shields.io/hexpm/v/interactor.svg)](https://hex.pm/packages/interactor)
+
+**Interactor provides an opinionated interface for performing complex user interactions.**
 
 ## What this is
 

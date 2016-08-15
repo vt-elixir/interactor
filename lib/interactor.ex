@@ -80,7 +80,8 @@ defmodule Interactor do
   """
   @spec call_task(module, map) :: Task.t
   def call_task(interactor, map) do
-    Task.Supervisor.async(TaskSupervisor, Interactor, :call, [interactor, map])
+    context = %{map | meta: %{task: true}}
+    Task.Supervisor.async(TaskSupervisor, Interactor, :call, [interactor, context])
   end
 
   @doc """
@@ -91,7 +92,8 @@ defmodule Interactor do
   """
   @spec call_async(module, map) :: {:ok, pid}
   def call_async(interactor, map) do
-    Task.Supervisor.start_child(TaskSupervisor, Interactor, :call, [interactor, map])
+    context = %{map | meta: %{async: true}}
+    Task.Supervisor.start_child(TaskSupervisor, Interactor, :call, [interactor, context])
   end
 
   defmacro __using__(opts) do

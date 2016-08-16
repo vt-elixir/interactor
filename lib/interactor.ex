@@ -80,7 +80,8 @@ defmodule Interactor do
   """
   @spec call_task(module, map) :: Task.t
   def call_task(interactor, map) do
-    Task.Supervisor.async(TaskSupervisor, Interactor, :call, [interactor, map])
+    context = set_meta(map, :task, true)
+    Task.Supervisor.async(TaskSupervisor, Interactor, :call, [interactor, context])
   end
 
   @doc """
@@ -91,7 +92,8 @@ defmodule Interactor do
   """
   @spec call_async(module, map) :: {:ok, pid}
   def call_async(interactor, map) do
-    Task.Supervisor.start_child(TaskSupervisor, Interactor, :call, [interactor, map])
+    context = set_meta(map, :async, true)
+    Task.Supervisor.start_child(TaskSupervisor, Interactor, :call, [interactor, context])
   end
 
   defmacro __using__(opts) do
@@ -111,4 +113,11 @@ defmodule Interactor do
       defoverridable [before_call: 1, after_call: 1]
     end
   end
+
+  defp set_meta(context, key, value) do
+    context
+    |> Map.put_new(:meta, %{})
+    |> put_in([:meta, key], value)
+  end
 end
+

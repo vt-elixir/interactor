@@ -88,10 +88,22 @@ defmodule Interactor do
 
   Primary use case is task you want completely asynchronos with no care for
   return values.
+
+  Async can be disabled in tests by setting (will still return {:ok, pid}):
+
+      config :interactor,
+        force_syncronous_tasks: true
+
   """
   @spec call_async(module, map) :: {:ok, pid}
   def call_async(interactor, map) do
-    Task.Supervisor.start_child(TaskSupervisor, Interactor, :call, [interactor, map])
+    if sync_tasks do
+      t = Task.Supervisor.async(TaskSupervisor, Interactor, :call, [interactor, map])
+      Task.await(t)
+      {:ok, t.pid}
+    else
+      Task.Supervisor.start_child(TaskSupervisor, Interactor, :call, [interactor, map])
+    end
   end
 
   defmacro __using__(opts) do
@@ -110,5 +122,9 @@ defmodule Interactor do
 
       defoverridable [before_call: 1, after_call: 1]
     end
+  end
+
+  defp sync_tasks do
+    Application.get_env(:interactor, :force_syncronous_tasks, false)
   end
 end

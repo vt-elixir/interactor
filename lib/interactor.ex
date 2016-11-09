@@ -13,11 +13,12 @@ defmodule Interactor do
   callback. When `use`-ing you can optionaly include a Repo option which will
   be used to execute any Ecto.Changesets or Ecto.Multi structs you return.
 
-  Interactors supports three callbacks:
+  Interactors supports four callbacks:
 
     * `before_call/1` - Useful for manipulating input etc.
     * `handle_call/1` - The meat, usually returns an Ecto.Changeset or Ecto.Multi.
     * `after_call/1` - Useful for metrics, publishing events, etc
+    * `cleanup/1` - Used to undo the effects of this interactor.
 
   Interactors can be called in three ways:
 
@@ -58,13 +59,21 @@ defmodule Interactor do
   @callback after_call(any) :: any
 
   @doc """
+  Executed to undo this interactor.
+
+  This is primarily for organized interactors. cleanup is called on
+  finished interactors if something fails further down the chain.
+  """
+  @callback cleanup(any) :: any
+
+  @doc """
   Executes the `before_call/1`, `handle_call/1`, and `after_call/1` callbacks.
 
   If an Ecto.Changeset or Ecto.Multi is returned by `handle_call/1` and a
   `repo` options was passed to `use Interactor` the changeset or multi will be
   executed and the results returned.
   """
-  @spec call_task(module, map) :: Task.t
+  @spec call(module, map) :: any
   def call(interactor, context) do
     context
     |> interactor.before_call
@@ -119,8 +128,9 @@ defmodule Interactor do
     quote do
       def before_call(c), do: c
       def after_call(r), do: r
+      def cleanup(x), do: x
 
-      defoverridable [before_call: 1, after_call: 1]
+      defoverridable [before_call: 1, after_call: 1, cleanup: 1]
     end
   end
 

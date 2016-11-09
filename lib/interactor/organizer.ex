@@ -37,7 +37,7 @@ defmodule Interactor.Organizer do
             handle_cleanup(interactor, error, new_context)
           other -> other
         end
-      rescue error in RuntimeError -> handle_cleanup(interactor, error, new_context)
+      rescue error -> handle_cleanup(interactor, error, new_context)
       end
     end
   end

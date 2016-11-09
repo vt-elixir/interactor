@@ -20,6 +20,12 @@ defmodule OrganizerTest do
     end
   end
 
+  defmodule SimpleExample2 do
+    use Interactor
+    def handle_call(_args), do: {:ok, %{bar: :foo, baz: :quux}}
+    def cleanup(%{bar: :foo, baz: :quux}), do: {:ok, %{bar: :foo}}
+  end
+
   defmodule ExceptionExample do
     use Interactor
     def handle_call(%{bar: :foo}) do
@@ -42,7 +48,7 @@ defmodule OrganizerTest do
   defmodule ExceptionOrganizer do
     use Interactor.Organizer
 
-    organize [SimpleExample, ExceptionExample]
+    organize [SimpleExample, SimpleExample2, ExceptionExample]
   end
 
   test "it works just fine" do
@@ -50,10 +56,10 @@ defmodule OrganizerTest do
   end
 
   test "clean up after" do
-    assert {:error, "oh no", %{bar: :foo}} == Interactor.call(CleanupOrganizer, %{foo: :bar})
+    assert {:error, "oh no", %{foo: :bar}} == Interactor.call(CleanupOrganizer, %{foo: :bar})
   end
 
   test "it cleans up even if it catches an exception" do
-    assert {:error, %RuntimeError{message: "A HUGE EXCEPTION"}, %{bar: :foo}} == Interactor.call(ExceptionOrganizer, %{foo: :bar})
+    assert {:error, %RuntimeError{message: "A HUGE EXCEPTION"}, %{foo: :bar}} == Interactor.call(ExceptionOrganizer, %{foo: :bar})
   end
 end

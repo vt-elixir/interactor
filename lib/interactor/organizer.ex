@@ -28,16 +28,22 @@ defmodule Interactor.Organizer do
 
   def execute_interactors(context, []), do: {:ok, context}
   def execute_interactors(context, [interactor | interactors]) do
-    try do
-      with {:ok, new_context} <- Interactor.call(interactor, context) do
+    with {:ok, new_context} <- Interactor.call(interactor, context) do
+      try do
         case execute_interactors(new_context, interactors) do
+          {:error, error, error_context} ->
+            handle_cleanup(interactor, error, error_context)
           {:error, error} ->
-            {:ok, _} = interactor.cleanup(new_context)
-            {:error, error, new_context}
+            handle_cleanup(interactor, error, new_context)
           other -> other
         end
+      rescue error in RuntimeError -> handle_cleanup(interactor, error, new_context)
       end
-    rescue error -> {:error, error}
     end
+  end
+
+  def handle_cleanup(interactor, error, context) do
+    {:ok, cleanup_context} = interactor.cleanup(context)
+    {:error, error, cleanup_context}
   end
 end

@@ -128,7 +128,7 @@ defmodule Interactor do
     quote do
       def before_call(c), do: c
       def after_call(r), do: r
-      def cleanup(x), do: x
+      def cleanup(x), do: {:ok, x}
 
       defoverridable [before_call: 1, after_call: 1, cleanup: 1]
     end

@@ -40,22 +40,32 @@ defmodule Interactor do
   """
 
   @doc """
+  Warning: Deprecated
+
   The primary callback. Typically returns an Ecto.Changeset or an Ecto.Multi.
   """
   @callback handle_call(map) :: any
 
   @doc """
+  Warning: Deprecated
+
   A callback executed before handle_call. Useful for normalizing inputs.
   """
   @callback before_call(map) :: map
 
   @doc """
+  Warning: Deprecated
+
+
   A callback executed after handle_call and after the Repo executes.
 
   Useful for publishing events, tracking metrics, and other non-transaction
   worthy calls.
   """
   @callback after_call(any) :: any
+
+  @type opts :: binary | tuple | atom | integer | float | [opts] | %{opts => opts}
+  @callback call(Interactor.Interaction.t, opts) :: Interactor.Interaction.t
 
   @doc """
   Executes the `before_call/1`, `handle_call/1`, and `after_call/1` callbacks.
@@ -64,13 +74,10 @@ defmodule Interactor do
   `repo` options was passed to `use Interactor` the changeset or multi will be
   executed and the results returned.
   """
-  @spec call_task(module, map) :: Task.t
-  def call(interactor, context) do
-    context
-    |> interactor.before_call
-    |> interactor.handle_call
-    |> Interactor.Handler.handle(interactor.__repo)
-    |> interactor.after_call
+  #@spec call(module, map, key) :: Interaction.id | any
+  def call(interactor, assigns, opts \\ []) do
+    %Interactor.Interaction{assigns: assigns}
+    |> interactor.call(opts)
   end
 
   @doc """
@@ -119,8 +126,18 @@ defmodule Interactor do
     quote do
       def before_call(c), do: c
       def after_call(r), do: r
+      def handle_call(r), do: c
 
-      defoverridable [before_call: 1, after_call: 1]
+      def call(%{assigns: assigns}, _) do
+        IO.puts("Warning: using deprecated 0.1.0 behaviour, please see README and CHANGELOG for upgrade instructions. This functionality will be removed in 0.3.0")
+        assigns
+        |> before_call
+        |> handle_call
+        |> Interactor.Handler.handle(__repo)
+        |> after_call
+      end
+
+      defoverridable [before_call: 1, after_call: 1, handle_call: 1, call: 2]
     end
   end
 

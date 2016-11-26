@@ -82,6 +82,7 @@ defmodule Interactor.Builder do
   # `quote_interactor` wraps a new interactor around that series of calls.
   defp quote_interactor({interactor, opts, guards}, acc, env) do
     call = quote_interactor_call(interactor, opts)
+    assign_to = determine_assign_to(interactor, opts)
 
     {fun, meta, [arg, [do: clauses]]} =
       quote do
@@ -90,12 +91,12 @@ defmodule Interactor.Builder do
           %Interactor.Interaction{} = interaction -> unquote(acc)
           # In "other" cases interaction is binding from previous interactor
           {:ok, other} ->
-            interaction = Interactor.Interaction.assign(interaction, unquote(interactor), other)
+            interaction = Interactor.Interaction.assign(interaction, unquote(assign_to), other)
             unquote(acc)
           {:error, error} ->
             %{interaction | success: false, error: error}
           other ->
-            interaction = Interactor.Interaction.assign(interaction, unquote(interactor), other)
+            interaction = Interactor.Interaction.assign(interaction, unquote(assign_to), other)
             unquote(acc)
         end
       end
@@ -120,6 +121,10 @@ defmodule Interactor.Builder do
       _                ->
         quote do: unquote(interactor)(interaction, unquote(Macro.escape(opts)))
     end
+  end
+
+  defp determine_assign_to(interactor, opts) do
+    opts[:assign_to] || interactor
   end
 
   defp compile_guards(call, true) do

@@ -6,7 +6,7 @@ defmodule Interactor.BuilderTest do
 
     interactor :two
     interactor :three
-    interactor :four
+    interactor :four, assign_to: :for
 
     def two(i,_), do: assign(i, :two, "two")
     def three(_,_), do: "three"
@@ -44,7 +44,7 @@ defmodule Interactor.BuilderTest do
       one: "one",
       two: "two",
       three: "three",
-      four: "four",
+      for: "four",
       five: "five",
     }
   end

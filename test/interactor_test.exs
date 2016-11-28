@@ -38,4 +38,16 @@ defmodule InteractorTest do
       Interactor.call(Fail, %{zero: 0})
   end
 
+  test "call/2 - async - Interaction returned" do
+    assert %Interaction{assigns: assigns} = Interactor.call(One, %{zero: 0}, strategy: :async)
+    assert %{zero: 0, one: pid} = assigns
+    assert is_pid(pid)
+  end
+
+  test "call/2 - task - Interaction returned" do
+    assert %Interaction{} = int = Interactor.call(Two, %{zero: 0}, strategy: :task)
+    assert %{zero: 0, two: %Task{}} = int.assigns
+    int = Interactor.Strategy.Task.await(int)
+    assert %{zero: 0, two: 2} = int.assigns
+  end
 end

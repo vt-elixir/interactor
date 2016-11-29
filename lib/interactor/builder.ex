@@ -46,7 +46,7 @@ defmodule Interactor.Builder do
     quote do
       @behaviour Interactor
       import Interactor.Builder, only: [interactor: 1, interactor: 2]
-      import Interactor.Interaction # TODO, is this a good idea? assign/3 could conflict
+      alias Interactor.Interaction
 
       def call(interaction, opts) do
         interactor_builder_call(interaction, opts)
@@ -79,7 +79,7 @@ defmodule Interactor.Builder do
   # `acc` is a series of nested interactor calls in the form of
   # interactor3(interactor2(interactor1(interaction))).
   # `quote_interactor` wraps a new interactor around that series of calls.
-  defp quote_interactor({interactor, opts, guards}, acc, env) do
+  defp quote_interactor({interactor, opts, guards}, acc, _env) do
     call = quote_interactor_call(interactor, opts)
 
     {fun, meta, [arg, [do: clauses]]} =

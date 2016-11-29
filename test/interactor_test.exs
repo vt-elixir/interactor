@@ -1,82 +1,61 @@
 defmodule InteractorTest do
   use ExUnit.Case
   doctest Interactor
+  alias Interactor.Interaction
 
-  defmodule Foo do
-    use Ecto.Schema
-
-    schema "foos" do
-      field :foo, :string
-    end
+  defmodule One do
+    @behaviour Interactor
+    def call(%Interaction{} = int, _opts), do: Interaction.assign(int, :one, 1)
   end
 
-  # We don't need to test ecto, just handle repo calls and return something.
-  defmodule FakeRepo do
-    def insert_or_update(changeset) do
-      %Foo{foo: Ecto.Changeset.get_field(changeset, :foo)}
-    end
-
-    def transaction(fun) when is_function(fun), do: fun.()
-    def transaction(%Ecto.Multi{} = multi) do
-      foos = multi
-              |> Ecto.Multi.to_list
-              |> Enum.reduce(%{}, fn({key, {_, cs, _}}, m) ->
-                Map.put(m, key, insert_or_update(cs))
-              end)
-      {:ok, foos}
-    end
+  defmodule Two do
+    @behaviour Interactor
+    def call(_interaction, _opts), do: {:ok, 2}
+    def rollback(interaction), do: Interaction.assign(interaction, :two, 0)
   end
 
-  defmodule SimpleExample do
-    use Interactor
-    def handle_call(%{foo: bar}), do: {:ok, "foo" <> bar}
+  defmodule Fail do
+    @behaviour Interactor
+    def call(_interaction, _opts), do: {:error, "error"}
   end
 
-  defmodule ChangesetExample do
-    use Interactor, repo: FakeRepo
-    import Ecto.Changeset
-    def handle_call(params), do: cast(%Foo{}, params, [:foo])
+  test "call/2 - %Interaction{} returned" do
+    assert %Interaction{assigns: assigns} = Interactor.call(One, %{zero: 0})
+    assert assigns == %{zero: 0, one: 1}
   end
 
-  defmodule MultiExample do
-    use Interactor, repo: FakeRepo
-    alias Ecto.Multi
-    def handle_call(%{foo1: foo1, foo2: foo2}) do
-      Multi.new
-      |> Multi.insert(:foo1, ChangesetExample.handle_call(%{foo: foo1}))
-      |> Multi.insert(:foo2, ChangesetExample.handle_call(%{foo: foo2}))
-    end
+  test "call/2 - {:ok, 2} returned" do
+    assert %Interaction{assigns: assigns} = Interactor.call(Two, %{zero: 0})
+    assert assigns == %{zero: 0, two: 2}
   end
 
-  test "simple - calling call" do
-    assert {:ok, "foobar"} = Interactor.call(SimpleExample, %{foo: "bar"})
+  test "call/3 - {:ok, 2} returned - with assign to" do
+    assert %Interaction{assigns: assigns} = Interactor.call(Two, %{zero: 0}, assign_to: :too)
+    assert assigns == %{zero: 0, too: 2}
   end
 
-  test "simple - calling call_task" do
-    task = Interactor.call_task(SimpleExample, %{foo: "bar"})
-    assert {:ok, "foobar"} = Task.await(task)
+  test "call/2 - {:error, 2} returned" do
+    assert %Interaction{success: false, error: "error", assigns: %{zero: 0}} =
+      Interactor.call(Fail, %{zero: 0})
   end
 
-  test "changeset - calling call" do
-    foo = Interactor.call(ChangesetExample, %{foo: "bar"})
-    assert foo.foo == "bar"
+  test "call/2 - async - Interaction returned" do
+    assert %Interaction{assigns: assigns} = Interactor.call(One, %{zero: 0}, strategy: :async)
+    assert %{zero: 0, one: pid} = assigns
+    assert is_pid(pid)
   end
 
-  test "changeset - calling call_task" do
-    task = Interactor.call_task(ChangesetExample, %{foo: "bar"})
-    foo = Task.await(task)
-    assert foo.foo == "bar"
+  test "call/2 - task - Interaction returned" do
+    assert %Interaction{} = int = Interactor.call(Two, %{zero: 0}, strategy: :task)
+    assert %{zero: 0, two: %Task{}} = int.assigns
+    int = Interactor.Strategy.Task.await(int)
+    assert %{zero: 0, two: 2} = int.assigns
   end
 
-  test "multi - calling call_async" do
-    results = Interactor.call_async(MultiExample, %{foo1: "bar", foo2: "baz"})
-    assert {:ok, _} = results
-  end
-
-  test "multi - calling call_task" do
-    task = Interactor.call_task(MultiExample, %{foo1: "bar", foo2: "baz"})
-    assert {:ok, %{foo1: foo1, foo2: foo2}} = Task.await(task)
-    assert foo1.foo == "bar"
-    assert foo2.foo == "baz"
+  test "rollback/1" do
+    assert %Interaction{} = int = Interactor.call(Two, %{zero: 0})
+    assert %{zero: 0, two: 2} = int.assigns
+    int = Interaction.rollback(int)
+    assert %{zero: 0, two: 0} = int.assigns
   end
 end

@@ -20,6 +20,12 @@ defmodule Interactor do
   @callback call(Interaction.t, opts) :: Interaction.t | {:ok, any} | {:error, any} | any
 
   @doc """
+  Optional callback to be executed if interactors up the chain return an error. When using Interaction.Builder prefer the `rollback` option.
+  """
+  @callback rollback(Interaction.t) :: Interaction.t
+  @optional_callbacks rollback: 1
+
+  @doc """
   Call an Interactor.
 
   #TODO: Docs, Examples
@@ -44,13 +50,20 @@ defmodule Interactor do
     do: do_call(module, fun, interaction, Interactor.Strategy.Task, opts)
   defp do_call(module, fun, interaction, strategy, opts) do
     assign_to = determine_assign_to(module, fun, opts[:assign_to])
+    rollback = determine_rollback(module, fun, opts[:rollback])
     case strategy.execute(module, fun, interaction, opts) do
-      # When interaction is returned do nothing
-      %Interaction{} = interaction -> interaction
-      # Otherwise properly add result to interaction
-      {:error, error} -> %{interaction | success: false, error: error}
-      {:ok, other} -> Interaction.assign(interaction, assign_to, other)
-      other -> Interaction.assign(interaction, assign_to, other)
+      %Interaction{} = interaction ->
+        Interaction.add_rollback(interaction, rollback)
+      {:error, error} ->
+        Interaction.rollback(%{interaction | success: false, error: error})
+      {:ok, other} ->
+        interaction
+        |> Interaction.assign(assign_to, other)
+        |> Interaction.add_rollback(rollback)
+      other ->
+        interaction
+        |> Interaction.assign(assign_to, other)
+        |> Interaction.add_rollback(rollback)
     end
   end
 
@@ -65,4 +78,13 @@ defmodule Interactor do
   end
   defp determine_assign_to(_module, fun, nil), do: fun
   defp determine_assign_to(_module, _fun, assign_to), do: assign_to
+
+  defp determine_rollback(module, :call, nil) do
+    if {:rollback, 1} in module.__info__(:functions) do
+      {module, :rollback}
+    end
+  end
+  defp determine_rollback(_module, _fun, nil), do: nil
+  defp determine_rollback(module, _fun, rollback), do: {module, rollback}
+
 end

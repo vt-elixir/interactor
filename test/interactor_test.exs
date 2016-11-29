@@ -11,6 +11,7 @@ defmodule InteractorTest do
   defmodule Two do
     @behaviour Interactor
     def call(_interaction, _opts), do: {:ok, 2}
+    def rollback(interaction), do: Interaction.assign(interaction, :two, 0)
   end
 
   defmodule Fail do
@@ -49,5 +50,12 @@ defmodule InteractorTest do
     assert %{zero: 0, two: %Task{}} = int.assigns
     int = Interactor.Strategy.Task.await(int)
     assert %{zero: 0, two: 2} = int.assigns
+  end
+
+  test "rollback/1" do
+    assert %Interaction{} = int = Interactor.call(Two, %{zero: 0})
+    assert %{zero: 0, two: 2} = int.assigns
+    int = Interaction.rollback(int)
+    assert %{zero: 0, two: 0} = int.assigns
   end
 end

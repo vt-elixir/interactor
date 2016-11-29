@@ -52,6 +52,8 @@ defmodule Interactor do
     assign_to = determine_assign_to(module, fun, opts[:assign_to])
     rollback = determine_rollback(module, fun, opts[:rollback])
     case strategy.execute(module, fun, interaction, opts) do
+      %Interaction{success: false} = interaction ->
+        Interaction.rollback(interaction)
       %Interaction{} = interaction ->
         Interaction.add_rollback(interaction, rollback)
       {:error, error} ->

@@ -98,9 +98,7 @@ defmodule Interactor do
   @spec call_async(module, map) :: {:ok, pid}
   def call_async(interactor, map) do
     if sync_tasks do
-      t = Task.Supervisor.async(TaskSupervisor, Interactor, :call, [interactor, map])
-      Task.await(t)
-      {:ok, t.pid}
+      call(interactor, map)
     else
       Task.Supervisor.start_child(TaskSupervisor, Interactor, :call, [interactor, map])
     end
